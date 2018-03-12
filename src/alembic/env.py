@@ -15,10 +15,6 @@ config = context.config
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 from models import metadata
 
 target_metadata = metadata
@@ -35,6 +31,7 @@ exclude_tables = config.get_section(
 
 
 def include_object(object, name, type_, reflected, compare_to):
+    """ Hook for excluding PostGis tables """
     if type_ == "table" and name in exclude_tables:
         return False
     else:
@@ -53,7 +50,6 @@ def run_migrations_offline():
     script output.
 
     """
-    sys.path.append(os.path.join(os.getcwd()))
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url, target_metadata=target_metadata, literal_binds=True,
@@ -71,11 +67,11 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    sys.path.append(os.path.join(os.getcwd()))
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
         prefix='sqlalchemy.',
-        poolclass=pool.NullPool)
+        poolclass=pool.NullPool
+    )
 
     with connectable.connect() as connection:
         context.configure(
