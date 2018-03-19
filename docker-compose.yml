@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  db:
+    image: mdillon/postgis
+    env_file:
+      - .env
+  web:
+    build: .
+    command: bash -c "alembic upgrade head && python main.py"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    links:
+      - db:postgres
+    volumes:
+      - ./src/:/app/
+    ports:
+      - "8000:8080"
+    restart: on-failure
+    depends_on:
+      - db
