@@ -1,10 +1,10 @@
 import os
 
-DATABASE_NAME = os.getenv('DATABASE_NAME', 'test_db')
-DATABASE_USER = os.getenv('DATABASE_USER', 'postgres')
-DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD', '')
-DATABASE_HOST = os.getenv('DATABASE_HOST', 'localhost')
-DATABASE_PORT = os.getenv('DATABASE_PORT', 6543)
+DATABASE_NAME = os.getenv('POSTGRES_DB', 'test_db')
+DATABASE_USER = os.getenv('POSTGRES_USER', 'postgres')
+DATABASE_PASSWORD = os.getenv('POSTGRES_PASSWORD', '')
+DATABASE_HOST = os.getenv('POSTGRES_HOST', 'localhost')
+DATABASE_PORT = os.getenv('POSTGRES_PORT', 5432)
 
 BASE_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..')
 

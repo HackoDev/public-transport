@@ -1,54 +1,48 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Table
-
-from sqlalchemy import MetaData
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import (
+    Column, Integer, String, Boolean, ForeignKey, Table, MetaData
+)
 from geoalchemy2 import Geometry
 
 metadata = MetaData()
-BaseModel = declarative_base(metadata=metadata)
 
+drivers_tbl = Table(
+    'drivers', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('first_name', String(32), nullable=False),
+    Column('last_name', String(32), nullable=False),
+    Column('middle_name', String(32), nullable=False),
+    Column('experience', Integer, default=0),
+    Column('is_active', Boolean, default=True, nullable=False)
+)
 
-class Driver(BaseModel):
-    __tablename__ = 'drivers'
+routes_tbl = Table(
+    'routes', metadata,
+    Column('id', String(8), primary_key=True),
+    Column('name', String(256), default='', nullable=False),
+    Column('forward_direction', Geometry('MULTILINESTRING'), nullable=True,
+           default=None),
+    Column('backward_direction', Geometry('MULTILINESTRING'), nullable=True,
+           default=None),
+)
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    first_name = Column(String(32), nullable=False)
-    last_name = Column(String(32), nullable=False)
-    middle_name = Column(String(32), nullable=False)
-    experience = Column(Integer, default=0)
-    is_active = Column(Boolean, default=True, nullable=False)
+stations_tbl = Table(
+    'stations', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('name', String(512), default='', nullable=False),
+    Column('coord', Geometry('POINT'), default=None, nullable=True)
+)
 
+route_stations_tbl = Table(
+    'route_stations', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('route_id', None, ForeignKey('routes.id'), nullable=False),
+    Column('station_id', None, ForeignKey('stations.id'), nullable=False)
+)
 
-class Route(BaseModel):
-    __tablename__ = 'routes'
-
-    id = Column(String(8), primary_key=True)
-    forward_direction = Column(Geometry('MULTILINESTRING'), nullable=True,
-                               default=None)
-    backward_direction = Column(Geometry('MULTILINESTRING'), nullable=True,
-                                default=None)
-
-
-class Station(BaseModel):
-    __tablename__ = 'stations'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(512), default='', nullable=False)
-    coord = Column(Geometry('POINT'), default=None, nullable=True)
-
-
-class RouteStations(BaseModel):
-    __tablename__ = 'route_stations'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    route_id = Column(ForeignKey('routes.id'), nullable=False)
-    station_id = Column(ForeignKey('stations.id'), nullable=False)
-
-
-class Transport(BaseModel):
-    __tablename__ = 'transports'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    route_id = Column(ForeignKey('routes.id'), nullable=False)
-    driver_id = Column(ForeignKey('drivers.id'), nullable=False)
-    position = Column(Geometry('POINT'), nullable=True, default=None)
+transports_tbl = Table(
+    'transports', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('route_id', None, ForeignKey('routes.id'), nullable=False),
+    Column('driver_id', None, ForeignKey('drivers.id'), nullable=True),
+    Column('position', Geometry('POINT'), nullable=True, default=None)
+)
