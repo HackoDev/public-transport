@@ -1,0 +1,24 @@
+{% extends 'admin/base.html' %}
+{#{% load wtforms %}#}
+
+{% block title %}Администрирование водителей{% endblock %}
+
+{% block breadcrumbs %}
+  <li class="breadcrumb-item"><a href="#">Администрирование</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Список водителей</li>
+{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-sm">
+      <h5>Администрирование сервиса</h5>
+      <form method="post">
+        {% for field in form %}
+          <div>{{ field.label }}: {{ field(class="form-control") }}</div>
+        {% endfor %}
+      <hr/>
+      <input type="submit" class="btn btn-success">
+      </form>
+    </div>
+  </div>
+{% endblock %}

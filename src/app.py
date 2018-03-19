@@ -5,6 +5,7 @@ from aiopg.sa import create_engine
 import asyncio
 
 import config
+import routes
 
 
 def make_app():
@@ -20,6 +21,6 @@ def make_app():
             database=config.DATABASE_NAME, loop=loop
         )
     )
-    app.router.add_get('/admin/', list_view, name='admin')
-    app.router.add_static('/static/', path=config.STATIC_ROOT, name='static')
+    # app.router.add_get('/admin/', list_view, name='admin')
+    routes.setup_routes(app)
     return app
