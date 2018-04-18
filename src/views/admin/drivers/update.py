@@ -44,6 +44,7 @@ async def drivers_update(request):
                     is_active=form.data['is_active']
                 )
                 await conn.execute(query)
+            return HTTPFound(request.app.router['admin-drivers'].url())
     else:
         form = DriverForm(**data)
     return {

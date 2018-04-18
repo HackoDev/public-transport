@@ -1,0 +1,41 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Администрирование водителей{% endblock %}
+
+{% block breadcrumbs %}
+  <li class="breadcrumb-item"><a href="{{ url('admin') }}">Администрирование</a></li>
+  <li class="breadcrumb-item active" aria-current="page">{{ verbose_name_plural }}</li>
+{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-sm">
+      <h5>Администрирование сервиса</h5>
+      <a href="{{ add_view_url }}"
+         class="btn btn-primary btn-sm pull-right">Добавить "{{ verbose_name }}"</a>
+      <br/>
+      <br/>
+      <table class="table ">
+        <tr>
+          {% for field in list_display %}
+            <th>{{ field.upper() }}</th>
+          {% endfor%}
+          <td>*</td>
+        </tr>
+        {% for data_values in object_list %}
+          <tr>
+          {% for value in data_values.values_list %}
+            <td>{{ value }}</td>
+          {% endfor %}
+            <td>
+              <a href="{{ url(change_url_name, pk=data_values.object_id) }}">Change</a>
+            </td>
+          </tr>
+
+        {% else %}
+          <td colspan="{{ count_header }}">Пусто</td>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'admin/form-view.html' %}
+
+{% block js %}
+  <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+  <script type="application/javascript">
+      var map;
+      function loadMap() {
+          map = new OpenLayers.Map("demoMap");
+          map.addLayer(new OpenLayers.Layer.OSM());
+          map.zoomToMaxExtent();
+          alert(1);
+      }
+      window.onload = loadMap;
+  </script>
+{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-sm">
+      <h5>Администрирование сервиса</h5>
+      <form method="post">
+        {% for field in form %}
+          <div>{{ field.label }}: {{ field(class="form-control") }}</div>
+        {% endfor %}
+        <hr/>
+
+        <div class="row">
+          <div class="col-sm">
+            <div id="demoMap" style="height: 300px;"></div>
+          </div>
+        </div>
+        <input type="submit" class="btn btn-success">
+        {% if delete_url %}
+          <a class="btn btn-warning" href="{{ delete_url }}">Удалить</a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+{% endblock %}

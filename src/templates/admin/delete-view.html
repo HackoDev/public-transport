@@ -1,0 +1,24 @@
+{% extends 'admin/base.html' %}
+{#{% load wtforms %}#}
+
+{% block title %}Администрирование водителей{% endblock %}
+
+{% block breadcrumbs %}
+  <li class="breadcrumb-item"><a href="{{ url('admin') }}">Администрирование</a></li>
+  <li class="breadcrumb-item"><a href="{{ list_view_url }}">{{ verbose_name_plural }}</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Удаление "{{ verbose_name }}"</li>
+{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-sm">
+      <h5>Администрирование сервиса</h5>
+      <form method="post">
+        Вы действительно хотите удалить объект?
+      <hr/>
+      <input type="submit" class="btn btn-success" value="Да">&nbsp;
+      <a href="{{ list_view_url }}">Отмена</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}

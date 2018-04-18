@@ -10,3 +10,7 @@ class DriverForm(Form):
     middle_name = StringField(validators=[DataRequired()], label='Отчество')
     experience = IntegerField(validators=[DataRequired()], label='Опыт')
     is_active = BooleanField(label='Работает')
+
+
+class DriverSearchForm(Form):
+    search = StringField(validators=[DataRequired()])

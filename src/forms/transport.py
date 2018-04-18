@@ -1,8 +1,8 @@
 from wtforms.form import Form
-from wtforms.fields import IntegerField
-from wtforms.validators import NumberRange
+from wtforms.fields import FloatField, StringField, IntegerField
+from wtforms.validators import NumberRange, DataRequired
 
 
-class PageForm(Form):
-
-    page = IntegerField(validators=[NumberRange(min=0)])
+class TransportForm(Form):
+    route_id = StringField(validators=[DataRequired()])
+    driver_id = IntegerField(validators=[DataRequired(), NumberRange(min=1)])

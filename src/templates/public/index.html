@@ -2,6 +2,12 @@
 
 {% block title %}Главная{% endblock %}
 
+{% block js %}
+  <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+  {#  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-plugins/3.0.2/layer/vector/OSM.min.js"></script>#}
+  <script src="{{ url('static', filename='js/map.js') }}"></script>
+{% endblock %}
+
 {% block content %}
   <div class="row">
     <div class="col-sm">
@@ -39,4 +45,12 @@
         отображаются на карте сервиса</p>
     </div>
   </div>
+  <div class="row">
+    <div class="col-sm">
+      <div id="demoMap" style="height: 300px;"></div>
+    </div>
+  </div>
+  <br/>
+  <br/>
+  <br/>
 {% endblock %}

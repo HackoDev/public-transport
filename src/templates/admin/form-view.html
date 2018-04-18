@@ -1,0 +1,33 @@
+{% extends 'admin/base.html' %}
+{#{% load wtforms %}#}
+
+{% block title %}Администрирование водителей{% endblock %}
+
+{% block breadcrumbs %}
+  <li class="breadcrumb-item"><a
+          href="{{ url('admin') }}">Администрирование</a></li>
+  <li class="breadcrumb-item"><a
+          href="{{ list_view_url }}">{{ verbose_name_plural }}</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Редактирование
+    "{{ verbose_name }}"
+  </li>
+{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-sm">
+      <h5>Администрирование сервиса</h5>
+      <form method="post">
+        {% for field in form %}
+          <div>{{ field.label }}: {{ field(class="form-control") }}</div>
+        {% endfor %}
+        <hr/>
+        <input type="submit" class="btn btn-success">
+        {% if delete_url %}
+          <a class="btn btn-warning" href="{{ delete_url }}">Удалить</a>
+        {% endif %}
+      </form>
+    {% block after_form %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}
