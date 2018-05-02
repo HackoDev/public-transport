@@ -14,6 +14,7 @@ def make_app():
     aiohttp_jinja2.setup(
         app, loader=jinja2.FileSystemLoader(config.TEMPLATE_DIR)
     )
+    # setup engine
     app['engine'] = loop.run_until_complete(
         create_engine(
             user=config.DATABASE_USER, password=config.DATABASE_PASSWORD,
@@ -21,6 +22,6 @@ def make_app():
             database=config.DATABASE_NAME, loop=loop
         )
     )
-    # app.router.add_get('/admin/', list_view, name='admin')
+    # setup urls
     routes.setup_routes(app)
     return app
