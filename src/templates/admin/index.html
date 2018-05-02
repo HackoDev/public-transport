@@ -11,10 +11,9 @@
     <div class="col-sm">
       <h5>Администрирование сервиса</h5>
       <ul>
-        <li><a href="{{ url('admin-drivers-list') }}">Водители</a></li>
-        <li><a href="{{ url('admin-routes-list') }}">Маршруты</a></li>
-        <li><a href="{{ url('admin-transports-list') }}">Транспорт</a></li>
-{#        <li><a href="{{ url('admin-drivers') }}">Остановочные комплексы</a></li>#}
+        {% for item in apps %}
+          <li><a href="{{ item.url }}">{{ item.name_plural }}</a></li>
+        {% endfor %}
       </ul>
     </div>
   </div>

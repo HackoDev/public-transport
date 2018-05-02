@@ -4,5 +4,6 @@ from wtforms.validators import NumberRange, DataRequired
 
 
 class TransportForm(Form):
-    route_id = StringField(validators=[DataRequired()])
-    driver_id = IntegerField(validators=[DataRequired(), NumberRange(min=1)])
+    route_id = StringField(validators=[DataRequired()], label='Маршрут')
+    driver_id = IntegerField(validators=[DataRequired(), NumberRange(min=1)],
+                             label='Водитель')

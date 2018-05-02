@@ -19,3 +19,4 @@ six==1.11.0
 SQLAlchemy==1.2.3
 WTForms==2.1
 yarl==1.1.1
+Shapely==1.6.4.post1

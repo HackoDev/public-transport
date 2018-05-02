@@ -1,3 +1,4 @@
+from typing import Type
 import aiohttp_jinja2
 from aiohttp.web_exceptions import HTTPFound
 import sqlalchemy as sa
@@ -6,7 +7,38 @@ from sqlalchemy import update, delete
 from forms.paginator import PageForm
 
 
-class TableAdminView:
+class AdminSite(object):
+    def __init__(self, app):
+        self.app = app
+        self._registry = []
+        self.app.router.add_route('GET', '/admin/', self.index_view,
+                                  name='admin')
+
+    def register_model(self, admin_cls: Type['TableAdminView']):
+        admin_instance = admin_cls(self.app)
+        url, _ = admin_instance.get_url_name('list')
+        self._registry.append({
+            'admin': admin_instance,
+            'name': admin_instance.verbose_name,
+            'name_plural': admin_instance.verbose_name_plural,
+            'url': url
+        })
+        for method, handler, (url_path, url_reverse_name) in \
+                admin_instance.get_urls():
+            self.app.router.add_route(method, url_path, handler,
+                                      name=url_reverse_name)
+
+    @aiohttp_jinja2.template('admin/index.html')
+    async def index_view(self, request):
+        context = {'apps': self._registry}
+        return context
+
+    def get_registered_models(self):
+        for item in self._registry:
+            yield item
+
+
+class TableAdminView(object):
     list_display = None
     form_class = None
     table = None
@@ -26,6 +58,12 @@ class TableAdminView:
         ])
         self.list_view_url, _ = self.get_url_name('list')
         self.add_view_url, _ = self.get_url_name('add')
+
+    def transform_input_data(self, data):
+        return data
+
+    def transform_output_data(self, data):
+        return data
 
     def get_each_context(self):
         return {
@@ -57,7 +95,8 @@ class TableAdminView:
             data = await request.post()
             form = self.form_class(data)
             if form.validate():
-                insert_data = form.data.copy()
+                insert_data = self.transform_input_data(form.data.copy())
+
                 async with engine.acquire() as conn:
                     await conn.execute(self.table.insert().values(
                         **insert_data))
@@ -130,14 +169,16 @@ class TableAdminView:
             data = await request.post()
             form = self.form_class(data=data)
             if form.validate():
+                updated_data = self.transform_input_data(form.data.copy())
                 async with engine.acquire() as conn:
-                    data = form.data.copy()
                     query = update(self.table) \
-                        .where(self.table.c.id == object_id).values(**data)
+                        .where(self.table.c.id == object_id).values(
+                        **updated_data)
                     await conn.execute(query)
                 return HTTPFound(self.list_view_url)
         else:
-            form = self.form_class(**instance_data)
+            output_data = self.transform_output_data(instance_data)
+            form = self.form_class(**output_data)
         context = self.get_each_context()
         _, reverse_name = self.get_url_name('delete', with_name=True)
         context.update({
@@ -147,7 +188,8 @@ class TableAdminView:
             'add_view_url': self.add_view_url,
             'verbose_name': self.verbose_name,
             'verbose_name_plural': self.verbose_name_plural,
-            'delete_url': request.app.router[reverse_name].url(parts={'pk': object_id})
+            'delete_url': request.app.router[reverse_name].url(
+                parts={'pk': object_id})
         })
         return aiohttp_jinja2.render_template(self.change_form_template,
                                               request, context)
@@ -198,11 +240,15 @@ class TableAdminView:
     def get_urls(self):
         urls = [
             ('get', self.list_view, self.get_url_name('list', with_name=True)),
-            ('get', self.create_view, self.get_url_name('add', with_name=True)),
+            (
+                'get', self.create_view,
+                self.get_url_name('add', with_name=True)),
             ('post', self.create_view, self.get_url_name('add')),
-            ('get', self.update_view, self.get_url_name('update', with_name=True)),
+            ('get', self.update_view,
+             self.get_url_name('update', with_name=True)),
             ('post', self.update_view, self.get_url_name('update')),
-            ('get', self.delete_view, self.get_url_name('delete', with_name=True)),
+            ('get', self.delete_view,
+             self.get_url_name('delete', with_name=True)),
             ('post', self.delete_view, self.get_url_name('delete')),
         ]
         return urls

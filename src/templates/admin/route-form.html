@@ -1,15 +1,81 @@
 {% extends 'admin/form-view.html' %}
 
 {% block js %}
-  <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+  {#  <script src="http://www.openlayers.org/api/OpenLayers.js"></script>#}
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css"
+        integrity="sha512-Rksm5RenBEKSKFjgI3a41vrjkw4EVPlJ3+OiI65vTjIdo9brlAacEuKOiQ5OFh7cOI1bkDwLqdLw3Zg0cRJAAQ=="
+        crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"
+          integrity="sha512-/Nsx9X4HebavoBvEBuyp3I7od5tA0UzAxs+j83KgC8PU0kgB4XiK4Lfe4y4cgBtaRJQEIFCW+oC506aPT2L1zw=="
+          crossorigin=""></script>
   <script type="application/javascript">
-      var map;
+      var map,
+          directionMap = {
+              'forward': ['#forward_direction', null, 'green'],
+              'backward': ['#backward_direction', null, 'blue']
+          },
+          currentDirection = 'forward';
+
       function loadMap() {
-          map = new OpenLayers.Map("demoMap");
-          map.addLayer(new OpenLayers.Layer.OSM());
-          map.zoomToMaxExtent();
-          alert(1);
+          var tmpLine;
+          map = L.map('demoMap', {
+              center: [51.505, 0.09],
+              zoom: 10
+          });
+          L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZ2V0ZnJlc2hiYWtlZCIsImEiOiJjaXBzbjdoZGUwM3oxZnZtMmltazJ0eHU4In0.B9Vu_0d7ZJlCXfwP5V_s5A', {
+              maxZoom: 20,
+              attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a>',
+              id: 'mapbox.streets'
+          }).addTo(map);
+          $('#forward_direction, #backward_direction').parent().parent().hide();
+
+          if ($('#forward_direction').val()) {
+              tmpLine = JSON.parse($('#forward_direction').val());
+              console.log(tmpLine.map(function (e) {
+                  return {lat: e[0], lng: e[1]};
+              }));
+              directionMap.forward[1] = L.polyline(tmpLine.map(function (e) {
+                  return {lat: e[1], lng: e[0]};
+              }), {
+                  color: directionMap.forward[2],
+                  opacity: 0.5
+              }).addTo(map);
+          }
+
+          if ($('#backward_direction').val()) {
+              tmpLine = JSON.parse($('#backward_direction').val());
+              console.log(tmpLine);
+              directionMap.backward[1] = L.polyline(tmpLine.map(function (e) {
+                  return {lat: e[1], lng: e[0]};
+              }), {
+                  color: directionMap.backward[2],
+                  opacity: 0.5
+              }).addTo(map);
+          }
+
+          map.addEventListener('click', function (obj) {
+              let tmp, iterData = directionMap[currentDirection];
+              console.log(obj.latlng)
+              if (!iterData[1])
+                  iterData[1] = L.polyline([obj.latlng], {
+                      color: iterData[2],
+                      opacity: 0.5
+                  }).addTo(map);
+              else
+                  iterData[1].addLatLng(obj.latlng);
+              tmp = JSON.stringify(iterData[1].toGeoJSON().geometry.coordinates);
+              $(iterData[0]).val(tmp);
+          })
       }
+
+      function clearPath() {
+          if (directionMap[currentDirection][1])
+              directionMap[currentDirection][1].setLatLngs([]);
+          $(directionMap[currentDirection][0]).val('[]');
+      }
+
       window.onload = loadMap;
   </script>
 {% endblock %}
@@ -20,13 +86,31 @@
       <h5>Администрирование сервиса</h5>
       <form method="post">
         {% for field in form %}
-          <div>{{ field.label }}: {{ field(class="form-control") }}</div>
+          <div class="row">
+            <div class="col-sm">
+              {{ field.label }}: {{ field(class="form-control") }}
+            </div>
+          </div>
         {% endfor %}
-        <hr/>
-
         <div class="row">
           <div class="col-sm">
-            <div id="demoMap" style="height: 300px;"></div>
+            <label>Направление движения:</label>
+            <select onchange="currentDirection = this.value"
+                    class="form-control">
+              <option value="forward" selected>Прямое</option>
+              <option value="backward">Обратное</option>
+            </select>
+            <br/>
+            <button class="btn btn-primary" type="button"
+                    onclick="clearPath()">Очистить маршрут
+            </button>
+          </div>
+        </div>
+        <hr/>
+        <div class="row">
+          <div class="col-sm">
+            <div id="demoMap" style="margin: 20px 0; height: 300px">
+            </div>
           </div>
         </div>
         <input type="submit" class="btn btn-success">

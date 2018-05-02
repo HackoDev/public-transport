@@ -1,22 +1,21 @@
 import config
 from views import public
+from views.base_admin_view import AdminSite
 from views import admin
-from views.admin.driver import DriverAdmin, TransportAdmin, RoutesAdmin
 
 
 def setup_routes(app):
-    # TODO: refactor url schema- use resources.
+    """
+    Helper function for setup app routes.
+
+    :param app: app instance
+    """
     app.router.add_get('/', public.index_view, name='public-index')
-    app.router.add_get('/admin/', admin.index, name='admin')
     app.router.add_static('/static/', path=config.STATIC_ROOT, name='static')
-    register_admin(app, DriverAdmin)
-    register_admin(app, TransportAdmin)
-    register_admin(app, RoutesAdmin)
-
-
-def register_admin(app, admin_cls):
-
-    admin_instance = admin_cls(app)
-    for method, handler, (url_path, url_reverse_name) in \
-            admin_instance.get_urls():
-        app.router.add_route(method, url_path, handler, name=url_reverse_name)
+    # register admin classes with admin routes
+    admin_site = AdminSite(app)
+    admin_site.register_model(admin.DriverAdmin)
+    admin_site.register_model(admin.TransportAdmin)
+    admin_site.register_model(admin.RoutesAdmin)
+    admin_site.register_model(admin.RouteStationAdmin)
+    admin_site.register_model(admin.StationsAdmin)

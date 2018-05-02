@@ -1,8 +1,10 @@
 from wtforms.form import Form
-from wtforms.fields import IntegerField
-from wtforms.validators import NumberRange
+from wtforms.fields import StringField
+from wtforms.validators import DataRequired
 
 
-class PageForm(Form):
+class StationForm(Form):
 
-    page = IntegerField(validators=[NumberRange(min=0)])
+    name = StringField(validators=[DataRequired()], label='Название')
+    coord = StringField(validators=[DataRequired()],
+                        label='Координаты станции')
