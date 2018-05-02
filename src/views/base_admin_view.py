@@ -1,7 +1,9 @@
+import json
 from typing import Type
 import aiohttp_jinja2
 from aiohttp.web_exceptions import HTTPFound
 import sqlalchemy as sa
+from aiohttp.web_response import Response
 from sqlalchemy import update, delete
 
 from forms.paginator import PageForm
@@ -11,11 +13,12 @@ class AdminSite(object):
     def __init__(self, app):
         self.app = app
         self._registry = []
+        self._models = {}
         self.app.router.add_route('GET', '/admin/', self.index_view,
                                   name='admin')
 
     def register_model(self, admin_cls: Type['TableAdminView']):
-        admin_instance = admin_cls(self.app)
+        admin_instance = admin_cls(self.app, self)
         url, _ = admin_instance.get_url_name('list')
         self._registry.append({
             'admin': admin_instance,
@@ -23,6 +26,7 @@ class AdminSite(object):
             'name_plural': admin_instance.verbose_name_plural,
             'url': url
         })
+        self._models.setdefault(admin_cls.table.name, admin_instance)
         for method, handler, (url_path, url_reverse_name) in \
                 admin_instance.get_urls():
             self.app.router.add_route(method, url_path, handler,
@@ -49,9 +53,11 @@ class TableAdminView(object):
     change_form_template = 'admin/form-view.html'
     list_view_template = 'admin/list-view.html'
     delete_view_template = 'admin/delete-view.html'
+    lookup_fields = None
 
-    def __init__(self, app):
+    def __init__(self, app, site: 'AdminSite'):
         self._app = app
+        self._site = site
         self._list_display_columns = list([
             getattr(self.table.c, column_name)
             for column_name in self.list_display
@@ -66,12 +72,23 @@ class TableAdminView(object):
         return data
 
     def get_each_context(self):
-        return {
+        context = {'select2': []}
+        if self.lookup_fields:
+            assert isinstance(self.lookup_fields, (list, tuple))
+            for field, (table_name, fields) in self.lookup_fields:
+                admin_instance = self._site._models[table_name]
+                context['select2'].append({
+                    'field': field,
+                    'url': admin_instance.get_url_name('api-list')[0],
+                    'fields': list([f.name for f in fields])
+                })
+        context.update({
             'list_view_url': self.list_view_url,
             'add_view_url': self.add_view_url,
             'verbose_name': self.verbose_name,
             'verbose_name_plural': self.verbose_name_plural
-        }
+        })
+        return context
 
     @classmethod
     def get_form_fields(cls):
@@ -109,30 +126,37 @@ class TableAdminView(object):
             'list_view_url': self.list_view_url,
             'add_view_url': self.add_view_url,
             'verbose_name': self.verbose_name,
-            'verbose_name_plural': self.verbose_name_plural
+            'verbose_name_plural': self.verbose_name_plural,
         })
         return aiohttp_jinja2.render_template(self.change_form_template,
                                               request, context)
 
-    async def list_view(self, request):
+    async def flat_list_view(self, request, fields=None):
         engine = request.app['engine']
         form = self.pagination_form(data={'page': request.get('page')})
+        result_fields = fields or self._list_display_columns
         if form.validate():
             page = form.data['page']
         else:
             page = 0
         items = []
         async with engine.acquire() as conn:
-            query = sa.select(self._list_display_columns) \
-                .offset(page * self.page_size).limit(self.page_size) \
+            query = sa.select(result_fields).offset(page * self.page_size) \
+                .limit(self.page_size) \
                 .select_from(self.table)
             async for row in conn.execute(query):
-                items.append({
-                    'values_list': list(
-                        (getattr(row, field) for field in self.list_display)
-                    ),
-                    'object_id': row.id
-                })
+                items.append(dict(row))
+        return items
+
+    async def list_view(self, request):
+        items = []
+        for row in await self.flat_list_view(request):
+            items.append({
+                'values_list': list(
+                    (row[field] for field in self.list_display)
+                ),
+                'object_id': row['id']
+            })
         _, reverse_name = self.get_url_name('update', with_name=True)
 
         context = self.get_each_context()
@@ -228,6 +252,7 @@ class TableAdminView(object):
             'add': list_url + r'add/',
             'update': list_url + r'{pk:\d+}/',
             'list': list_url,
+            'api-list': '/api' + list_url,
             'delete': list_url + r'{pk:\d+}/delete/'
         }
         url = mapper.get(url_name)
@@ -240,6 +265,8 @@ class TableAdminView(object):
     def get_urls(self):
         urls = [
             ('get', self.list_view, self.get_url_name('list', with_name=True)),
+            ('get', self.api_list_view,
+             self.get_url_name('api-list', with_name=True)),
             (
                 'get', self.create_view,
                 self.get_url_name('add', with_name=True)),
@@ -252,3 +279,27 @@ class TableAdminView(object):
             ('post', self.delete_view, self.get_url_name('delete')),
         ]
         return urls
+
+    def _get_search_fields(self, fields):
+        result_fields = []
+        for field in fields:
+            if hasattr(self.table.c, field):
+                result_fields.append(getattr(self.table.c, field))
+        return result_fields
+
+    async def api_list_view(self, request):
+        result_fields = self._get_search_fields(
+            request.query.getall('fields[]', ['id'])
+        )
+        items = []
+        for item in await self.flat_list_view(
+                request, fields=set(result_fields) | {'id'}):
+            items.append({
+                'id': item['id'],
+                'text': ' '.join(map(str, [
+                    value for key, value in item.items()
+                    if getattr(self.table.c, key) in result_fields
+                ]))
+            })
+        return Response(body=json.dumps({'results': items}),
+                        content_type='application/json')

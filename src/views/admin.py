@@ -29,6 +29,13 @@ class TransportAdmin(TableAdminView):
     verbose_name = 'Траноспорт'
     verbose_name_plural = 'Траноспорт'
 
+    lookup_fields = (
+        ('route_id', (routes_tbl.name, (routes_tbl.c.name,))),
+        ('driver_id', (drivers_tbl.name, (drivers_tbl.c.last_name,
+                                          drivers_tbl.c.first_name,
+                                          drivers_tbl.c.middle_name))),
+    )
+
 
 class RoutesAdmin(TableAdminView):
     table = routes_tbl
@@ -105,6 +112,10 @@ class StationsAdmin(TableAdminView):
 class RouteStationAdmin(TableAdminView):
     table = route_stations_tbl
     list_display = ('id', 'route_id', 'station_id')
+    lookup_fields = (
+        ('route_id', (routes_tbl.name, (routes_tbl.c.id, routes_tbl.c.name))),
+        ('station_id', (stations_tbl.name, (stations_tbl.c.name,))),
+    )
     form_class = RouteStationForm
     verbose_name_plural = 'Остановочные станции на маршрутах'
     verbose_name = 'Остановочная станция на маршруте'

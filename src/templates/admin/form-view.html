@@ -3,6 +3,44 @@
 
 {% block title %}Администрирование водителей{% endblock %}
 
+{% block js %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/js/select2.min.js"></script>
+  <script type="text/javascript">
+      {% for item in select2 %}
+          (function () {
+              $('#{{ item.field }}').hide().after('<select class="form-control" id="{{ item.field }}-select2"></select>');
+              var select = $("#{{ item.field }}-select2");
+              $(select).append('<option value="' + $('#{{ item.field }}').val() + '">'+ $('#{{ item.field }}').val() + '</option>');
+              $(select).val($('#{{ item.field }}').val());
+              var select2_{{ item.field }} = $('#{{ item.field }}-select2').select2({
+                  ajax: {
+                      url: '{{ item.url }}',
+                      data: function (params) {
+                          var query = {
+                              search: params.term,
+                              fields: {{ item.fields|safe }}
+                          };
+                          return query;
+                      },
+                      processResults: function (data) {
+                          console.log(data);
+                          return data;
+                      }
+                  }
+              });
+              select2_{{ item.field }}.on('change', function () {
+                  $('#{{ item.field }}').val(this.value);
+              })
+          }());
+      {% endfor %}
+  </script>
+{% endblock %}
+
+{% block css %}
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css"
+        rel="stylesheet"/>
+{% endblock %}
+
 {% block breadcrumbs %}
   <li class="breadcrumb-item"><a
           href="{{ url('admin') }}">Администрирование</a></li>
@@ -27,7 +65,7 @@
           <a class="btn btn-warning" href="{{ delete_url }}">Удалить</a>
         {% endif %}
       </form>
-    {% block after_form %}{% endblock %}
+      {% block after_form %}{% endblock %}
     </div>
   </div>
 {% endblock %}

@@ -7,7 +7,7 @@ metadata = MetaData()
 
 drivers_tbl = Table(
     'drivers', metadata,
-    Column('id', Integer, primary_key=True),
+    Column('id', Integer, primary_key=True, autoincrement=True),
     Column('first_name', String(32), nullable=False),
     Column('last_name', String(32), nullable=False),
     Column('middle_name', String(32), nullable=False),
