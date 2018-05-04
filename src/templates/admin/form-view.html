@@ -10,7 +10,7 @@
           (function () {
               $('#{{ item.field }}').hide().after('<select class="form-control" id="{{ item.field }}-select2"></select>');
               var select = $("#{{ item.field }}-select2");
-              $(select).append('<option value="' + $('#{{ item.field }}').val() + '">'+ $('#{{ item.field }}').val() + '</option>');
+              $(select).append('<option value="' + {{ item.related_object.id }} + '">'+ '{{ item.related_object.row }}' + '</option>');
               $(select).val($('#{{ item.field }}').val());
               var select2_{{ item.field }} = $('#{{ item.field }}-select2').select2({
                   ajax: {

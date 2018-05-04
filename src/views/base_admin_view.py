@@ -71,13 +71,23 @@ class TableAdminView(object):
     def transform_output_data(self, data):
         return data
 
-    def get_each_context(self):
+    async def get_each_context(self, object_id=None):
         context = {'select2': []}
         if self.lookup_fields:
             assert isinstance(self.lookup_fields, (list, tuple))
             for field, (table_name, fields) in self.lookup_fields:
                 admin_instance = self._site._models[table_name]
+                related_object = None
+                if object_id:
+                    async with self._app['engine'].acquire() as conn:
+                        query = sa.select(set(fields) |
+                                          {admin_instance.table.c.id}).limit(1)\
+                            .select_from(admin_instance.table)
+                        async for row in conn.execute(query):
+                            related_object = {'id': row['id'],
+                                              'row': ' '.join(map(str, row.values()))}
                 context['select2'].append({
+                    'related_object': related_object,
                     'field': field,
                     'url': admin_instance.get_url_name('api-list')[0],
                     'fields': list([f.name for f in fields])
@@ -120,7 +130,7 @@ class TableAdminView(object):
                     return HTTPFound(self.list_view_url)
         else:
             form = self.form_class()
-        context = self.get_each_context()
+        context = await self.get_each_context()
         context.update({
             'form': form,
             'list_view_url': self.list_view_url,
@@ -133,7 +143,7 @@ class TableAdminView(object):
 
     async def flat_list_view(self, request, fields=None):
         engine = request.app['engine']
-        form = self.pagination_form(data={'page': request.get('page')})
+        form = self.pagination_form(data={'page': request.query.get('page')})
         result_fields = fields or self._list_display_columns
         if form.validate():
             page = form.data['page']
@@ -159,7 +169,7 @@ class TableAdminView(object):
             })
         _, reverse_name = self.get_url_name('update', with_name=True)
 
-        context = self.get_each_context()
+        context = await self.get_each_context()
         context.update({
             'list_display': self.list_display,
             'count_header': len(self.list_display) + 1,
@@ -203,7 +213,7 @@ class TableAdminView(object):
         else:
             output_data = self.transform_output_data(instance_data)
             form = self.form_class(**output_data)
-        context = self.get_each_context()
+        context = await self.get_each_context(object_id=object_id)
         _, reverse_name = self.get_url_name('delete', with_name=True)
         context.update({
             'form': form,
@@ -222,7 +232,7 @@ class TableAdminView(object):
         engine = request.app['engine']
         driver_id = request.match_info['pk']
         data = None
-        context = self.get_each_context()
+        context = await self.get_each_context()
         async with engine.acquire() as conn:
             query = self.table.select().where(self.table.c.id == driver_id) \
                 .limit(1)

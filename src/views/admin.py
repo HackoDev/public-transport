@@ -28,6 +28,7 @@ class TransportAdmin(TableAdminView):
     form_class = TransportForm
     verbose_name = 'Траноспорт'
     verbose_name_plural = 'Траноспорт'
+    change_form_template = 'admin/transport-form.html'
 
     lookup_fields = (
         ('route_id', (routes_tbl.name, (routes_tbl.c.name,))),
@@ -35,6 +36,23 @@ class TransportAdmin(TableAdminView):
                                           drivers_tbl.c.first_name,
                                           drivers_tbl.c.middle_name))),
     )
+
+    def transform_output_data(self, data):
+        row_data = to_shape(data['position']).to_wkt()
+        m = re.match('^POINT \((?P<data>.*)\)$', row_data)
+        lng, lat = m.groupdict()['data'].split(' ')
+        data['position'] = json.dumps({
+            'lng': float(lng),
+            'lat': float(lat),
+        })
+        return data
+
+    def transform_input_data(self, data):
+        row_data = json.loads(data['position'])
+        data['position'] = 'POINT ({lng} {lat})'.format(
+            lat=row_data['lat'], lng=row_data['lng']
+        )
+        return data
 
 
 class RoutesAdmin(TableAdminView):
