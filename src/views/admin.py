@@ -24,7 +24,7 @@ class DriverAdmin(TableAdminView):
 
 class TransportAdmin(TableAdminView):
     table = transports_tbl
-    list_display = ('id',)
+    list_display = ('id', 'first_name', 'last_name', 'name')
     form_class = TransportForm
     verbose_name = 'Траноспорт'
     verbose_name_plural = 'Траноспорт'

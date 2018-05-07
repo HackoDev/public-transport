@@ -3,8 +3,10 @@
 {% block title %}Главная{% endblock %}
 
 {% block js %}
-  <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
-  {#  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-plugins/3.0.2/layer/vector/OSM.min.js"></script>#}
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css"
+        integrity="sha512-Rksm5RenBEKSKFjgI3a41vrjkw4EVPlJ3+OiI65vTjIdo9brlAacEuKOiQ5OFh7cOI1bkDwLqdLw3Zg0cRJAAQ=="
+        crossorigin=""/>
   <script src="{{ url('static', filename='js/map.js') }}"></script>
 {% endblock %}
 
@@ -47,7 +49,23 @@
   </div>
   <div class="row">
     <div class="col-sm">
-      <div id="demoMap" style="height: 300px;"></div>
+      <label>Выберите маршрут:</label>
+      <select class="form-control" onchange="selectRoute(this)">
+        {% for route in routes %}
+          <option>----</option>
+          <option value="{{ route.id }}"
+                  data-forward-direction='{{ route.forward_direction|safe }}'
+                  data-backward-direction='{{ route.backward_direction|safe }}'>
+            {{ route.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-sm">
+      <div id="demoMap" style="margin: 20px 0; height: 300px">
+      </div>
     </div>
   </div>
   <br/>

@@ -11,6 +11,7 @@ def setup_routes(app):
     :param app: app instance
     """
     app.router.add_get('/', public.index_view, name='public-index')
+    app.router.add_get('/api/load-stations/', public.stations_view, name='api-stations')
     app.router.add_static('/static/', path=config.STATIC_ROOT, name='static')
     # register admin classes with admin routes
     admin_site = AdminSite(app)

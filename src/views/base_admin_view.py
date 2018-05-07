@@ -49,7 +49,7 @@ class TableAdminView(object):
     verbose_name = None
     verbose_name_plural = None
     pagination_form = PageForm
-    page_size = 10
+    page_size = 20
     change_form_template = 'admin/form-view.html'
     list_view_template = 'admin/list-view.html'
     delete_view_template = 'admin/delete-view.html'
@@ -61,6 +61,7 @@ class TableAdminView(object):
         self._list_display_columns = list([
             getattr(self.table.c, column_name)
             for column_name in self.list_display
+            if hasattr(self.table.c, column_name)
         ])
         self.list_view_url, _ = self.get_url_name('list')
         self.add_view_url, _ = self.get_url_name('add')
@@ -81,11 +82,19 @@ class TableAdminView(object):
                 if object_id:
                     async with self._app['engine'].acquire() as conn:
                         query = sa.select(set(fields) |
-                                          {admin_instance.table.c.id}).limit(1)\
+                                          {admin_instance.table.c.id}).limit(1) \
                             .select_from(admin_instance.table)
                         async for row in conn.execute(query):
+                            if len(row.values()) > 1:
+                                values = [
+                                    str(value) for key, value in row.items()
+                                    if key not in ['id']
+                                ]
+                            else:
+                                values = row.values()
                             related_object = {'id': row['id'],
-                                              'row': ' '.join(map(str, row.values()))}
+                                              'row': ' '.join(values)}
+
                 context['select2'].append({
                     'related_object': related_object,
                     'field': field,
@@ -146,25 +155,34 @@ class TableAdminView(object):
         form = self.pagination_form(data={'page': request.query.get('page')})
         result_fields = fields or self._list_display_columns
         if form.validate():
-            page = form.data['page']
+            page = int(form.data['page'])
         else:
             page = 0
         items = []
+        table = self.table
+        if self.lookup_fields:
+            for field, (table_name, fields) in self.lookup_fields:
+                join_table = self._site._models[table_name].table
+                table_field = getattr(self.table.c, field)
+                table = sa.join(table, join_table,
+                                table_field == join_table.c.id)
+                result_fields.extend(fields)
+
         async with engine.acquire() as conn:
             query = sa.select(result_fields).offset(page * self.page_size) \
                 .limit(self.page_size) \
-                .select_from(self.table)
+                .select_from(table)
             async for row in conn.execute(query):
                 items.append(dict(row))
-        return items
+        return page, items
 
     async def list_view(self, request):
         items = []
-        for row in await self.flat_list_view(request):
+        page, rows = await self.flat_list_view(request)
+        for row in rows:
             items.append({
-                'values_list': list(
-                    (row[field] for field in self.list_display)
-                ),
+                'values_list': list([
+                    row[field] for field in self.list_display]),
                 'object_id': row['id']
             })
         _, reverse_name = self.get_url_name('update', with_name=True)
@@ -176,6 +194,10 @@ class TableAdminView(object):
             'object_list': items,
             'detail_reverse_name': '',
             'change_url_name': reverse_name,
+            'has_next': reverse_name,
+            'has_prev': page > 0,
+            'next_page': page + 1,
+            'prev_page': page - 1,
         })
         return aiohttp_jinja2.render_template(self.list_view_template,
                                               request, context)
@@ -302,8 +324,9 @@ class TableAdminView(object):
             request.query.getall('fields[]', ['id'])
         )
         items = []
-        for item in await self.flat_list_view(
-                request, fields=set(result_fields) | {'id'}):
+        page, rows = await self.flat_list_view(request, fields=set(result_fields)
+                                                         | {self.table.c.id})
+        for item in rows:
             items.append({
                 'id': item['id'],
                 'text': ' '.join(map(str, [
