@@ -1,4 +1,4 @@
-var map, forwardDirection, backwardDirection;
+var map, forwardDirection, backwardDirection, markers = [];
 
 function loadMap() {
     map = L.map("demoMap", {center: [47.2317896, 39.7162282], zoom: 12});
@@ -16,33 +16,26 @@ function loadMap() {
         color: 'blue',
         opacity: 0.5
     }).addTo(map);
-
-    $.ajax({
-        url: '/api/load-stations/',
-        type: 'get',
-        success: function (response) {
-            for (let i = 0; i < response.length; i++) {
-                console.log(response[i].coord);
-                let marker = L.marker(response[i].coord).addTo(map);
-                marker.bindPopup('Ост. <b>' + response[i].name + '</b>')
-            }
-        },
-        error: function (response) {
-            console.log('error', response);
-        }
-    })
 }
 
 
 function selectRoute(obj) {
-    var selected = obj.selectedOptions[0];
-    var forwardDirectionLngLats = $(selected).data('forward-direction'),
-        backwardDirectionLngLats = $(selected).data('backward-direction');
-    console.log(forwardDirectionLngLats);
-    console.log(backwardDirectionLngLats);
+    var selectedValue = obj.value,
+        forwardDirectionLngLats = mainData[selectedValue].forward_direction,
+        backwardDirectionLngLats = mainData[selectedValue].backward_direction,
+        stations = mainData[selectedValue].stations;
+    console.log(stations);
     forwardDirection.setLatLngs(forwardDirectionLngLats);
     backwardDirection.setLatLngs(backwardDirectionLngLats);
     map.fitBounds([forwardDirection.getBounds()._northEast, forwardDirection.getBounds()._southWest])
+    markers.forEach(function (elem) {
+        elem.remove();
+    });
+    for (let i = 0; i < stations.length; i++) {
+        let marker = L.marker(stations[i].coord).addTo(map);
+        marker.bindPopup('Ост. <b>' + stations[i].name + '</b>');
+        markers.push(marker);
+    }
 }
 
 window.onload = loadMap;

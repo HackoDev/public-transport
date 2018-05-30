@@ -24,7 +24,10 @@ class DriverAdmin(TableAdminView):
 
 class TransportAdmin(TableAdminView):
     table = transports_tbl
-    list_display = ('id', 'first_name', 'last_name', 'name')
+    list_display = (
+        'id', 'drivers_first_name', 'drivers_last_name',
+        'route_id', 'routes_name'
+    )
     form_class = TransportForm
     verbose_name = 'Траноспорт'
     verbose_name_plural = 'Траноспорт'
@@ -38,20 +41,24 @@ class TransportAdmin(TableAdminView):
     )
 
     def transform_output_data(self, data):
-        row_data = to_shape(data['position']).to_wkt()
-        m = re.match('^POINT \((?P<data>.*)\)$', row_data)
-        lng, lat = m.groupdict()['data'].split(' ')
-        data['position'] = json.dumps({
-            'lng': float(lng),
-            'lat': float(lat),
-        })
+        if data['position'].desc:
+            row_data = to_shape(data['position']).to_wkt()
+            m = re.match('^POINT \((?P<data>.*)\)$', row_data)
+            lng, lat = m.groupdict()['data'].split(' ')
+            data['position'] = json.dumps({
+                'lng': float(lng),
+                'lat': float(lat),
+            })
         return data
 
     def transform_input_data(self, data):
-        row_data = json.loads(data['position'])
-        data['position'] = 'POINT ({lng} {lat})'.format(
-            lat=row_data['lat'], lng=row_data['lng']
-        )
+        if data['position']:
+            row_data = json.loads(data['position'])
+            data['position'] = 'POINT ({lng} {lat})'.format(
+                lat=row_data['lat'], lng=row_data['lng']
+            )
+        else:
+            data['position'] = None
         return data
 
 
@@ -131,7 +138,7 @@ class RouteStationAdmin(TableAdminView):
     table = route_stations_tbl
     list_display = ('id', 'route_id', 'station_id')
     lookup_fields = (
-        ('route_id', (routes_tbl.name, (routes_tbl.c.id, routes_tbl.c.name))),
+        ('route_id', (routes_tbl.name, (routes_tbl.c.name,))),
         ('station_id', (stations_tbl.name, (stations_tbl.c.name,))),
     )
     form_class = RouteStationForm

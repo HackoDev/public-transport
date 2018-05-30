@@ -169,11 +169,15 @@ class TableAdminView(object):
                 result_fields.extend(fields)
 
         async with engine.acquire() as conn:
-            query = sa.select(result_fields).offset(page * self.page_size) \
-                .limit(self.page_size) \
-                .select_from(table)
+            query = sa.select(result_fields, use_labels=True).offset(
+                page * self.page_size).limit(self.page_size).select_from(table)
             async for row in conn.execute(query):
-                items.append(dict(row))
+                result_item = dict(row)
+                new_result_item = {}
+                for k, v in result_item.items():
+                    new_result_item.setdefault(
+                        k.replace(self.table.name + '_', ''), v)
+                items.append(dict(new_result_item))
         return page, items
 
     async def list_view(self, request):
@@ -281,11 +285,11 @@ class TableAdminView(object):
         tb_name = self.table.name.lower()
         list_url = '/admin/{}/'.format(tb_name)
         mapper = {
-            'add': list_url + r'add/',
-            'update': list_url + r'{pk:\d+}/',
+            'add': list_url + 'add/',
+            'update': list_url + '{pk:.+}/',
             'list': list_url,
             'api-list': '/api' + list_url,
-            'delete': list_url + r'{pk:\d+}/delete/'
+            'delete': list_url + '{pk:.+}/delete/'
         }
         url = mapper.get(url_name)
         assert url
@@ -303,12 +307,12 @@ class TableAdminView(object):
                 'get', self.create_view,
                 self.get_url_name('add', with_name=True)),
             ('post', self.create_view, self.get_url_name('add')),
-            ('get', self.update_view,
-             self.get_url_name('update', with_name=True)),
-            ('post', self.update_view, self.get_url_name('update')),
             ('get', self.delete_view,
              self.get_url_name('delete', with_name=True)),
             ('post', self.delete_view, self.get_url_name('delete')),
+            ('get', self.update_view,
+             self.get_url_name('update', with_name=True)),
+            ('post', self.update_view, self.get_url_name('update')),
         ]
         return urls
 
@@ -324,8 +328,9 @@ class TableAdminView(object):
             request.query.getall('fields[]', ['id'])
         )
         items = []
-        page, rows = await self.flat_list_view(request, fields=set(result_fields)
-                                                         | {self.table.c.id})
+        page, rows = await self.flat_list_view(
+            request, fields=set(result_fields) | {self.table.c.id}
+        )
         for item in rows:
             items.append({
                 'id': item['id'],

@@ -8,6 +8,9 @@
         integrity="sha512-Rksm5RenBEKSKFjgI3a41vrjkw4EVPlJ3+OiI65vTjIdo9brlAacEuKOiQ5OFh7cOI1bkDwLqdLw3Zg0cRJAAQ=="
         crossorigin=""/>
   <script src="{{ url('static', filename='js/map.js') }}"></script>
+  <script>
+      var mainData = {{ routes|safe }};
+  </script>
 {% endblock %}
 
 {% block content %}
@@ -51,13 +54,9 @@
     <div class="col-sm">
       <label>Выберите маршрут:</label>
       <select class="form-control" onchange="selectRoute(this)">
-        {% for route in routes %}
-          <option>----</option>
-          <option value="{{ route.id }}"
-                  data-forward-direction='{{ route.forward_direction|safe }}'
-                  data-backward-direction='{{ route.backward_direction|safe }}'>
-            {{ route.name }}
-          </option>
+        <option>----</option>
+        {% for route in routes.items() %}
+          <option value="{{ route.0 }}">{{ route.0 }} ({{ route.1.name }})</option>
         {% endfor %}
       </select>
     </div>
